@@ -1,0 +1,46 @@
+---
+galaxy_info:
+  author: Radimir Mikhailov
+  description: Install latest binary release from the GitHub
+  license: MIT
+  role_name: github_latest
+
+  min_ansible_version: 2.7
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: EL
+      versions:
+        - all
+    - name: Fedora
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags: []
+
+dependencies: []
+
+argument_specs:
+  main:
+    options:
+      asset_filename_ending:
+        description: Окончание в имени файла в качестве критерия выбора для скачивания
+        required: true
+        type: str
+      dest_binary:
+        description: Полный путь и имя, под которым бинарник из репозитория будет установлен в систему
+        required: true
+        type: path
+      repo:
+        description: Имя GitHub-репозитория
+        required: true
+        type: str
+      user:
+        description: Пользователь/владелец GitHub-репозитория
+        required: true
+        type: str

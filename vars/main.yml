@@ -1,0 +1,2 @@
+---
+_dest_filename: '{{ dest_binary | basename }}'

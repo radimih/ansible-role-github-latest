@@ -1,0 +1,92 @@
+---
+- name: Установить необходимые зависимости
+  ansible.builtin.package:
+    name: python3-jmespath  # библиотека, необходимая для работы фильтра community.general.json_query
+  become: true
+
+- name: Получить информацию о последнем релизе
+  block:
+
+  - name: '{{ user }}/{{ repo }}: получить информацию о последнем релизе в репозитории'
+    ansible.builtin.uri:
+      url: https://api.github.com/repos/{{ user }}/{{ repo }}/releases/latest
+      method: GET
+      body_format: json
+    register: r__github_release
+    delegate_to: local
+    until: r__github_release.status == 200
+    retries: 5
+
+  - name: '{{ user }}/{{ repo }}: установить факты о релизе'
+    vars:
+      _asset_query: assets[?ends_with(name, `{{ asset_filename_ending }}`)]
+      _asset_info: '{{ r__github_release.json | to_json | from_json | community.general.json_query(_asset_query) | first }}'
+    ansible.builtin.set_fact:
+      _tag_name: '{{ r__github_release.json.tag_name }}'
+      _file_type: '{{ _asset_info.content_type }}'
+      _download_url: '{{ _asset_info.browser_download_url }}'
+
+  run_once: true
+
+- name: '{{ user }}/{{ repo }}: проверить, установлен ли релиз {{ _tag_name }}'
+  ansible.builtin.stat:
+    path: '{{ dest_binary }}-{{ _tag_name }}'
+  register: r__current_binary
+
+- name: Скачать и залинковать новую версию
+  block:
+
+  - name: Создать временный каталог
+    ansible.builtin.tempfile:
+      state: directory
+      suffix: github
+    register: r__tempdir
+
+  - name: '{{ user }}/{{ repo }}: скачать последний релиз в виде одного бинарника'
+    ansible.builtin.get_url:
+      url: '{{ _download_url }}'
+      dest: '{{ r__tempdir.path }}/{{ _dest_filename }}'
+      mode: 0755
+    when: _file_type != 'application/gzip'
+
+  - name: '{{ user }}/{{ repo }}: скачать и распаковать последний релиз, когда релиз оформлен в виде архива'
+    ansible.builtin.unarchive:
+      remote_src: true
+      src: '{{ _download_url }}'
+      dest: '{{ r__tempdir.path }}'
+      extra_opts:
+        - --no-same-owner  # игнорировать владельцев файлов из архива. Владельцем всех распакованных файлов будет текущий пользователь
+    when: _file_type == 'application/gzip'
+
+  # Предполагается, что бинарник в архиве всегда лежит под именем _dest_filename
+  - name: '{{ user }}/{{ repo }}: установить необходимые права на бинарник из архива'
+    ansible.builtin.file:
+      path: '{{ r__tempdir.path }}/{{ _dest_filename }}'
+      mode: 0755
+    when: _file_type == 'application/gzip'
+
+  - name: '{{ user }}/{{ repo }}: установить бинарник под именем {{ dest_binary }}-{{ _tag_name }}'
+    ansible.builtin.command:
+      cmd: >
+        mv {{ r__tempdir.path }}/{{ _dest_filename }}
+           {{ dest_binary }}-{{ _tag_name }}
+      creates: '{{ dest_binary }}-{{ _tag_name }}'
+
+  - name: '{{ user }}/{{ repo }}: обновить симлинк на бинарник {{ dest_binary }}'
+    ansible.builtin.file:
+      src: '{{ dest_binary }}-{{ _tag_name }}'
+      dest: '{{ dest_binary }}'
+      state: link
+
+  # TODO: добавить удаление предыдущих версий бинарников
+
+  when: not r__current_binary.stat.exists
+
+  always:
+
+    - name: Удалить временный каталог
+      ansible.builtin.file:
+        path: '{{ r__tempdir.path }}'
+        state: absent
+      when: r__tempdir.path is defined
+      ignore_errors: true
