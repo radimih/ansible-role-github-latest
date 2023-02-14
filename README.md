@@ -43,6 +43,31 @@
     become: true
   ```
 
+## Ограничения
+
+Роль при своей работе анонимно обращается к API GitHub. Для таких запросов со стороны
+GitHub выставлен лимит - _60 запросов в час_.
+
+Посмотреть текущие значения лимита:
+
+```bash
+curl -Is https://api.github.com/users/github | grep x-ratelimit
+```
+
+```yaml
+x-ratelimit-limit: 60
+x-ratelimit-remaining: 48
+x-ratelimit-reset: 1676352080  # Unix time
+x-ratelimit-resource: core
+x-ratelimit-used: 12
+```
+
+ Во сколько лимит сбросится:
+
+```bash
+date -d @<число из HTTP-заголовка x-ratelimit-reset>
+```
+
 ## TODO
 
 - удалять предыдущие установленные версии бинарников
