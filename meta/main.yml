@@ -32,6 +32,10 @@ argument_specs:
         description: Окончание в имени файла в качестве критерия выбора для скачивания
         required: true
         type: str
+      asset_filename_not_contains:
+        description: Подстрока, которой не должно быть в имени файла для скачивания
+        required: false
+        type: str
       dest_binary:
         description: Полный путь и имя, под которым бинарник из репозитория будет установлен в систему
         required: true

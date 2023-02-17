@@ -15,10 +15,23 @@
 
 ### Необязательные
 
-| Аргумент | Описание | Default
-| --- | --- | ---
+| Аргумент                      | Описание | Default
+| ----------------------------- | -------- | -------
+| `asset_filename_not_contains` | Подстрока, которой **не должно** быть в имени выбираемого для скачивания asset-файла. Действует как дополнительный фильтр к `asset_filename_ending` | `x/x` (заведомо невозможная комбинация в имени файла)
 
 ## Примеры
+
+- установка [Docker Compose](https://github.com/docker/compose):
+
+  ```yaml
+  - role: github_latest
+    vars:
+      user: docker
+      repo: compose
+      asset_filename_ending: -linux-aarch64
+      dest_binary: /usr/local/bin/docker-compose
+    become: true
+  ```
 
 - установка [helmfile](https://github.com/helmfile/helmfile):
 
@@ -31,16 +44,16 @@
       dest_binary: ~/.local/bin/helmfile
   ```
 
-- установка [Docker Compose](https://github.com/docker/compose):
+- установка [Obsidian](https://github.com/obsidianmd/obsidian-releases):
 
   ```yaml
   - role: github_latest
     vars:
-      user: docker
-      repo: compose
-      asset_filename_ending: -linux-aarch64
-      dest_binary: /usr/local/bin/docker-compose
-    become: true
+      user: obsidianmd
+      repo: obsidian-releases
+      asset_filename_ending: .AppImage
+      asset_filename_not_contains: -arm64
+      dest_binary: ~/.local/bin/Obsidian.AppImage
   ```
 
 ## Ограничения

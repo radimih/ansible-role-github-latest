@@ -19,10 +19,11 @@
 
   - name: '{{ user }}/{{ repo }}: установить факты о релизе'
     vars:
-      _asset_query: assets[?ends_with(name, `{{ asset_filename_ending }}`)]
+      _asset_query: assets[?ends_with(name, `{{ asset_filename_ending }}`) && !contains(name, `{{ asset_filename_not_contains }}`)]
       _asset_info: '{{ r__github_release.json | to_json | from_json | community.general.json_query(_asset_query) | first }}'
     ansible.builtin.set_fact:
       _tag_name: '{{ r__github_release.json.tag_name }}'
+      _file_name: '{{ _asset_info.name }}'
       _file_type: '{{ _asset_info.content_type }}'
       _download_url: '{{ _asset_info.browser_download_url }}'
 
@@ -35,6 +36,10 @@
 
 - name: Скачать и залинковать новую версию
   block:
+
+  - name: '{{ user }}/{{ repo }}'
+    ansible.builtin.debug:
+      msg: 'Выбранный asset-файл для скачивания: {{ _file_name }}'
 
   - name: Создать временный каталог
     ansible.builtin.tempfile:
